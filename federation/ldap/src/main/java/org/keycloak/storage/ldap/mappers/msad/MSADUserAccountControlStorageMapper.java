@@ -217,13 +217,13 @@ public class MSADUserAccountControlStorageMapper extends AbstractLDAPStorageMapp
         public boolean isEnabled() {
             boolean kcEnabled = super.isEnabled();
 
-            if (getPwdLastSet() > 0) {
+            //if (getPwdLastSet() > 0) {
                 // Merge KC and MSAD
                 return kcEnabled && !getUserAccountControl(ldapUser).has(UserAccountControl.ACCOUNTDISABLE);
-            } else {
-                // If new MSAD user is created and pwdLastSet is still 0, MSAD account is in disabled state. So read just from Keycloak DB. User is not able to login via MSAD anyway
-                return kcEnabled;
-            }
+            //} else {
+            //    // If new MSAD user is created and pwdLastSet is still 0, MSAD account is in disabled state. So read just from Keycloak DB. User is not able to login via MSAD anyway
+            //    return kcEnabled;
+            //}
         }
 
         @Override
@@ -231,7 +231,7 @@ public class MSADUserAccountControlStorageMapper extends AbstractLDAPStorageMapp
             // Always update DB
             super.setEnabled(enabled);
 
-            if (ldapProvider.getEditMode() == UserStorageProvider.EditMode.WRITABLE && getPwdLastSet() > 0) {
+            if (ldapProvider.getEditMode() == UserStorageProvider.EditMode.WRITABLE /*&& getPwdLastSet() > 0*/) {
                 logger.debugf("Going to propagate enabled=%s for ldapUser '%s' to MSAD", enabled, ldapUser.getDn().toString());
 
                 UserAccountControl control = getUserAccountControl(ldapUser);

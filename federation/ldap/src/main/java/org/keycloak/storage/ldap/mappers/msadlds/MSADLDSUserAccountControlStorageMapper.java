@@ -180,13 +180,13 @@ public class MSADLDSUserAccountControlStorageMapper extends AbstractLDAPStorageM
         public boolean isEnabled() {
             boolean kcEnabled = super.isEnabled();
 
-            if (getPwdLastSet() > 0) {
+            //if (getPwdLastSet() > 0) {
                 // Merge KC and MSAD LDS
                 return kcEnabled && !Boolean.parseBoolean(ldapUser.getAttributeAsString(LDAPConstants.MSDS_USER_ACCOUNT_DISABLED));
-            } else {
-                // If new MSAD LDS user is created and pwdLastSet is still 0, MSAD account is in disabled state. So read just from Keycloak DB. User is not able to login via MSAD anyway
-                return kcEnabled;
-            }
+            //} else {
+            //    // If new MSAD LDS user is created and pwdLastSet is still 0, MSAD account is in disabled state. So read just from Keycloak DB. User is not able to login via MSAD anyway
+            //    return kcEnabled;
+            //}
         }
 
         @Override
@@ -194,7 +194,7 @@ public class MSADLDSUserAccountControlStorageMapper extends AbstractLDAPStorageM
             // Always update DB
             super.setEnabled(enabled);
 
-            if (ldapProvider.getEditMode() == UserStorageProvider.EditMode.WRITABLE && getPwdLastSet() > 0) {
+            if (ldapProvider.getEditMode() == UserStorageProvider.EditMode.WRITABLE /*&& getPwdLastSet() > 0*/) {
                 if (enabled) {
                     logger.debugf("Removing msDS-UserAccountDisabled of user '%s'", ldapUser.getDn().toString());
                     // TODO: Use removeAttribute once available
