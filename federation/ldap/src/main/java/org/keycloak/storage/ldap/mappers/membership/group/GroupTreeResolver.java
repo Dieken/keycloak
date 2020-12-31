@@ -41,7 +41,7 @@ public class GroupTreeResolver {
      * Fully resolves list of group trees to be used in Keycloak. The input is group info (usually from LDAP) where each "Group" object contains
      * just it's name and direct children.
      *
-     * The operation also performs validation as rules for LDAP are less strict than for Keycloak (In LDAP, the recursion is possible and multiple parents of single group is also allowed)
+     * The operation also performs validation as rules for LDAP are less strict than for Keycloak (In LDAP, the recursion is possible)
      *
      * @param groups
      * @param ignoreMissingGroups
@@ -52,14 +52,12 @@ public class GroupTreeResolver {
         // 1- Get parents of each group
         Map<String, List<String>> parentsTree = getParentsTree(groups, ignoreMissingGroups);
 
-        // 2 - Get rootGroups (groups without parent) and check if there is no group with multiple parents
+        // 2 - Get rootGroups (groups without parent)
         List<String> rootGroups = new LinkedList<>();
         for (Map.Entry<String, List<String>> group : parentsTree.entrySet()) {
             int parentCount = group.getValue().size();
             if (parentCount == 0) {
                 rootGroups.add(group.getKey());
-            } else if (parentCount > 1) {
-                throw new GroupTreeResolveException("Group '" + group.getKey() + "' detected to have multiple parents. This is not allowed in Keycloak. Parents are: " + group.getValue());
             }
         }
 
@@ -75,7 +73,7 @@ public class GroupTreeResolver {
         for (String rootGroupName : rootGroups) {
             List<String> subtree = new LinkedList<>();
             subtree.add(rootGroupName);
-            GroupTreeEntry groupTree = resolveGroupTree(rootGroupName, asMap, visitedGroups, subtree);
+            GroupTreeEntry groupTree = resolveGroupTree(rootGroupName, asMap, visitedGroups, new TreeSet<>(), subtree);
             finalResult.add(groupTree);
         }
 
@@ -90,7 +88,7 @@ public class GroupTreeResolver {
                     subtree.add(groupName);
 
                     Set<String> newVisitedGroups = new TreeSet<>();
-                    resolveGroupTree(groupName, asMap, newVisitedGroups, subtree);
+                    resolveGroupTree(groupName, asMap, newVisitedGroups, new TreeSet<>(), subtree);
                     visitedGroups.addAll(newVisitedGroups);
                 }
             }
@@ -128,12 +126,13 @@ public class GroupTreeResolver {
         return result;
     }
 
-    private GroupTreeEntry resolveGroupTree(String groupName, Map<String, Group> asMap, Set<String> visitedGroups, List<String> currentSubtree) throws GroupTreeResolveException {
-        if (visitedGroups.contains(groupName)) {
+    private GroupTreeEntry resolveGroupTree(String groupName, Map<String, Group> asMap, Set<String> visitedGroups, Set<String> currentSubVisitedGroups, List<String> currentSubtree) throws GroupTreeResolveException {
+        if (currentSubVisitedGroups.contains(groupName)) {
             throw new GroupTreeResolveException("Recursion detected when trying to resolve group '" + groupName + "'. Whole recursion path: " + currentSubtree);
         }
 
         visitedGroups.add(groupName);
+        currentSubVisitedGroups.add(groupName);
 
         Group group = asMap.get(groupName);
 
@@ -143,7 +142,7 @@ public class GroupTreeResolver {
         for (String childrenName : group.getChildrenNames()) {
             List<String> subtreeCopy = new LinkedList<>(currentSubtree);
             subtreeCopy.add(childrenName);
-            GroupTreeEntry childEntry = resolveGroupTree(childrenName, asMap, visitedGroups, subtreeCopy);
+            GroupTreeEntry childEntry = resolveGroupTree(childrenName, asMap, visitedGroups, new TreeSet<>(currentSubVisitedGroups), subtreeCopy);
             children.add(childEntry);
         }
 
